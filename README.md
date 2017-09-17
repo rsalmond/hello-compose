@@ -47,3 +47,7 @@ Reconfigure docker compose to bring up the app container without starting the ap
 `make nuke`
 
 Scrap everything.
+
+# TODO:
+
+Fix memcached.
