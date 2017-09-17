@@ -5,4 +5,4 @@ services:
     volumes:
       - ./hello:/hello
     #command: python manage.py runserver --debug --reload
-    command: sleep 6000
+    command: tail -f /dev/null
