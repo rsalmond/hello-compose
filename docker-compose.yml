@@ -58,6 +58,7 @@ services:
       HELLO_BINDS_MASTER: 'mysql+pymysql://root:LwBbWSYNfr97z491cIKqUB1@master/hello'
       HELLO_BINDS_SLAVE: 'mysql+pymysql://root:LwBbWSYNfr97z491cIKqUB1@slave/hello'
       HELLO_SQLALCHEMY_TRACK_MODIFICATIONS: 'false'
+      HELLO_MEMCACHED_HOST: 'memcached'
     depends_on:
       - master
       - slave
