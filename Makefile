@@ -1,6 +1,7 @@
 SHELL=bash
 
 NETWORK_EXISTS:=$(shell docker network ls -q -f name=hello)
+OVERRIDE_EXISTS:=$(shell find . -maxdepth 1 -name docker-compose.override.yml)
 HELLO_CONTAINER:=$(shell docker ps | grep "hello:latest" | awk -F " " '{print $$1}')
 
 .DEFAULT_GOAL := up
@@ -12,7 +13,11 @@ build:
 	docker build -t hello:latest .
 
 dev:
-	@cp docker-compose.override.dev.yml docker-compose.override.yml
+ifeq ($(OVERRIDE_EXISTS),)
+	@echo "No override file found, copy the example or create one and try again."
+	@echo "Eg. cp docker-compose.override.dev.yml docker-compose.override.yml"
+	@/bin/false
+endif
 ifeq ($(HELLO_CONTAINER),)
 	@echo "Hello container is not running, start it first with: make up"
 else
