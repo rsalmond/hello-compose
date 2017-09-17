@@ -29,7 +29,7 @@ update-requirements:
 	pip freeze | grep -v pkg-resources > ./hello/requirements.txt
 
 testdata:
-	curl --header "Content-Type: application/json" -X POST --data '{"name":"dude","adjective":"nice", "adverb": "really"}' http://localhost:5000/hello/v1/greetings/3
+	curl --header "Content-Type: application/json" -X POST --data '{"name":"dude","adjective":"nice", "adverb": "really"}' http://localhost:5000/hello/v1/greetings
 
 fromscratch: build setup up
 
