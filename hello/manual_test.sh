@@ -1,0 +1,6 @@
+#!/bin/bash
+
+unset URLSCREEN_BINDS_SLAVE
+unset URLSCREEN_BINDS_MASTER
+
+URLSCREEN_TESTING=True URLSCREEN_BINDS_MASTER=sqlite:// nosetests -s

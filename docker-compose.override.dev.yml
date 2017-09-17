@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  hello:
+    volumes:
+      - ./hello:/hello
+    #command: python manage.py runserver --debug --reload
+    command: sleep 6000

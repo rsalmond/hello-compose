@@ -1,0 +1,79 @@
+version: '3'
+
+services:
+  master:
+    image: twang2218/mysql:5.7-replica
+    restart: unless-stopped
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=LwBbWSYNfr97z491cIKqUB1
+      - MYSQL_REPLICA_USER=replica
+      - MYSQL_REPLICA_PASS=Bwsqz472lQbodZ7n4TIFyU
+    command: ["mysqld", "--log-bin=mysql-bin", "--server-id=1"]
+    healthcheck:
+      test: mysqladmin -h localhost -P 3306 ping --silent
+      interval: 10s
+      retries: 60
+    volumes:
+      - mysql-master-data:/var/lib/mysql
+
+  slave:
+    image: twang2218/mysql:5.7-replica
+    restart: unless-stopped
+    ports:
+      - 3307:3306
+    depends_on:
+      - master
+    environment:
+      - MYSQL_ROOT_PASSWORD=LwBbWSYNfr97z491cIKqUB1
+      - MYSQL_REPLICA_USER=replica
+      - MYSQL_REPLICA_PASS=Bwsqz472lQbodZ7n4TIFyU
+      - MYSQL_MASTER_SERVER=master
+      - MYSQL_MASTER_WAIT_TIME=10
+    command: ["mysqld", "--log-bin=mysql-bin", "--server-id=2"]
+    healthcheck:
+      test: mysqladmin -h localhost -P 3306 ping --silent
+      interval: 10s
+      retries: 60
+    volumes:
+      - mysql-slave-data:/var/lib/mysql
+
+  memcached:
+    image: memcached:alpine
+    restart: unless-stopped
+    ports:
+      - 11211:11211 
+    healthcheck:
+      test: echo stats | nc 127.0.0.1 11211
+      interval: 10s
+      retries: 60
+
+  hello:
+    container_name: hello
+    image: hello:latest
+    build: .
+    environment:
+      HELLO_SQLALCHEMY_DATABASE_URI: 'mysql+pymysql://root:LwBbWSYNfr97z491cIKqUB1@master/hello'
+      HELLO_BINDS_MASTER: 'mysql+pymysql://root:LwBbWSYNfr97z491cIKqUB1@master/hello'
+      HELLO_BINDS_SLAVE: 'mysql+pymysql://root:LwBbWSYNfr97z491cIKqUB1@slave/hello'
+      HELLO_SQLALCHEMY_TRACK_MODIFICATIONS: 'false'
+    depends_on:
+      - master
+      - slave
+      - memcached
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: curl --fail http://localhost:5000/health || exit 1
+
+volumes:
+  mysql-master-data:
+    driver: local
+  mysql-slave-data:
+    driver: local
+
+networks:
+  default:
+    external:
+      name: hello
