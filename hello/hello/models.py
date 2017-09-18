@@ -5,12 +5,14 @@ from flask import jsonify
 from datetime import datetime as dt
 from hello.errors import APIInvalidData, APIAlreadyExists
 from hello.common.database import db
+from hello.memcached import get_mc_client
 
 class ModelBase(db.Model):
     """ provide some useful common functions for db models """
     __abstract__ = True
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    cached = False
 
     def __eq__(self, other):
         """ compare class type and (non sqlalchemy) columns for equality """
@@ -26,6 +28,11 @@ class ModelBase(db.Model):
 
     @classmethod
     def by_id(cls, id):
+        # TODO: this will hit the cache even if caching is disabled, figure out a better way
+        obj = cls.get_cache_by_id(id)
+        if obj:
+            return obj
+
         return db.session.query(cls).filter_by(id=id).first()
 
     @classmethod
@@ -39,10 +46,36 @@ class ModelBase(db.Model):
     def save(self):
         db.session.add(self)
         db.session.commit()
+        # cache after commit because we dont get an ID until we write to the DB
+        if self.cached:
+            self.put_cache()
 
     def delete(self):
+        if self.cached:
+            self.del_cache()
         db.session.delete(self)
         db.session.commit()
+
+    def _mc_key(self):
+        """ memcached key based on class name + instance id """
+        assert self.id is not None
+        return '{}_{}'.format(str(self.__class__.__name__), self.id)
+
+    def put_cache(self):
+        mc_client = get_mc_client()
+        mc_client.set(self._mc_key(), pickle.dumps(self))
+
+    def del_cache(self):
+        mc_client = get_mc_client()
+        mc_client.delete(self._mc_key())
+
+    @classmethod
+    def get_cache_by_id(cls, id):
+        key = '{}_{}'.format(cls.__name__, id)
+        mc_client = get_mc_client()
+        serialized = mc_client.get(key)
+        if serialized is not None:
+            return pickle.loads(serialized)
 
 class Greeting(ModelBase):
     __tablename__ = 'greetings'
@@ -51,12 +84,11 @@ class Greeting(ModelBase):
     adjective = db.Column(db.String(255), default=None, nullable=False)
     adverb = db.Column(db.String(255), default=None, nullable=False)
 
-    def __init__(self, name, adjective=None, adverb=None):
+    def __init__(self, name, adjective=None, adverb=None, cached=False):
         self.name = name.lower()
-        if adjective:
-            self.adjective = adjective.lower()
-        if adverb:
-            self.adverb = adverb.lower()
+        self.adjective = adjective.lower() if adjective else "nice"
+        self.adverb = adverb.lower() if adverb else "really"
+        self.cached = cached
         self.save()
 
     def to_json(self, status=None):
@@ -126,7 +158,7 @@ class Greeting(ModelBase):
                     name=name),
                     current.id)
             else:
-                return cls(name, adjective, adverb)
+                return cls(name, adjective, adverb, cached=True)
 
 
     def __str__(self):
