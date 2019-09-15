@@ -1,6 +1,6 @@
 # Hello Compose
 
-A very elaborate hello world app embedded in a robust docker development environment.
+A very elaborate hello world app embedded in a robust docker development environment. Detailed instructions on how to use it [in this blog post](https://rob.salmond.ca/developing-in-docker/).
 
 # Setup
 
